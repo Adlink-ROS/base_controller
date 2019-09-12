@@ -25,13 +25,17 @@
 class STMController : public base_controller
 {
   public:
-    void init(void);
+    STMController(std::string name, uint32_t baudrate);
+    ~STMController();
+    int8_t init(void);
     void deinit(void);
     void runner(void);
     void consumer(void);
   private:
     std::thread recv_thread;
     std::atomic_bool running;
+    std::string port_name;
+    uint32_t baudrate;
     /* circular_buffer is thread-safe */
     std::unique_ptr<circular_buffer<uint8_t>> ringbuf;
 };

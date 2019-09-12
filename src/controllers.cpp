@@ -13,8 +13,10 @@
 // limitations under the License.
 
 // reference: https://embeddedartistry.com/blog/2017/4/6/circular-buffers-in-cc#api-design
+// reference: https://thispointer.com/c11-how-to-use-stdthread-as-a-member-variable-in-class/
 
 #include <memory>
+#include <iostream>
 
 #include <serial/serial.h>
 
@@ -25,22 +27,53 @@
  */
 
 /* There will be only one serial device when interactive with the STMController */
-std::shared_ptr<serial::Serial> unique_serial;
+std::shared_ptr<serial::Serial> serial_device = nullptr;
 
-void STMController::init(void)
+STMController::STMController(std::string name, uint32_t baudrate) :
+  port_name(name), baudrate(baudrate)
 {
+
+}
+
+STMController::~STMController()
+{
+
+}
+
+int8_t STMController::init(void)
+{
+  int8_t ret = -1;
+  try {
+    if (serial_device == nullptr) {
+      serial_device = std::make_shared<serial::Serial>
+        (this->port_name, this->baudrate, serial::Timeout::simpleTimeout(1000));
+    }
+  } catch (const std::exception& ex) {
+    throw;
+  }
+
   this->running = false;
 
   // default ring buffer size = 2048
   this->ringbuf =
     std::make_unique<circular_buffer<uint8_t>>(2048);
+
+  this->recv_thread = std::thread(
+      [this]()->void {
+      this->runner();
+      });
+
+  return ret;
 }
 
 void STMController::deinit(void)
 {
   this->running = false;
   // Wait until finished
-  this->recv_thread.join();
+  if (this->recv_thread.joinable())
+  {
+    this->recv_thread.join();
+  }
 }
 
 void STMController::runner(void)
@@ -51,8 +84,8 @@ void STMController::runner(void)
 
   while (this->running.load())
   {
-    return_size = unique_serial->read(_local_buf, chunk_size);
-    for (auto i = 0; i < return_size; i++) {
+    return_size = serial_device->read(_local_buf, chunk_size);
+    for (size_t i = 0; i < return_size; i++) {
       this->ringbuf->put(_local_buf.at(i));
     }
   }
@@ -62,6 +95,6 @@ void STMController::consumer(void)
 {
   while (this->running.load())
   {
-    uint8_t chr = this->ringbuf->get();
+    //uint8_t chr = this->ringbuf->get();
   }
 }

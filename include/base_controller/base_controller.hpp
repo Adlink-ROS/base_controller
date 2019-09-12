@@ -16,27 +16,32 @@
 #define BASE_CONTROLLER_HPP_
 
 #include <string>
-#include <vector>
+#include <map>
+#include <functional>
 
 struct controller_event {
   std::string name;
   std::string description;
-  uint16_t event_code;
+  std::function<void()> cb;
+  std::function<bool()> matching_func;
 };
 
 class base_controller {
   public:
     void notify(controller_event & event);
     void register_event(controller_event & event) {
-      this->event_list.push_back(event);
+      this->event_map.insert
+        (std::pair<std::string, controller_event>(event.name, event));
     }
-    void unregister_event(controller_event & event) {
+    void unregister_event(std::string name) {
+      auto it = this->event_map.find(name);
+      this->event_map.erase(it);
     }
-    virtual void init(void);
-    virtual void deinit(void);
+    virtual int8_t init(void) = 0;
+    virtual void deinit(void) = 0;
   private:
-    std::vector<controller_event> event_list =
-      std::vector<controller_event>(10);
+    std::map<std::string, controller_event> event_map =
+      std::map<std::string, controller_event>();
 };
 
 #endif /* BASE_CONTROLLER_HPP_ */
