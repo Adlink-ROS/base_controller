@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<package>
+  <name>base_controller</name>
+  <version>0.1.0</version>
+  <description>
+    base_controller is a pure cmake project for interfacing with several base controllers. e.g. ADLINK OmniBot base controller
+  </description>
+
+  <maintainer email="chester.tseng@adlinktech.com">YuSheng Tseng</maintainer>
+
+  <license>Apache License 2.0</license>
+
+  <author email="chester.tseng@adlinktech.com">YuSheng Tseng</author>
+
+  <buildtool_depend>cmake</buildtool_depend>
+
+  <build_depend>serial</build_depend>
+
+  <exec_depend>serial</exec_depend>
+
+  <export>
+    <build_type>cmake</build_type>
+  </export>
+</package>
