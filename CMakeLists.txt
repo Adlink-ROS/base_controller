@@ -19,7 +19,6 @@ set(header_path ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 add_library(${target} SHARED
   ${source_path}/controllers.cpp
-  ${source_path}/ringbuffer.cpp
   )
 
 target_link_libraries(${target}

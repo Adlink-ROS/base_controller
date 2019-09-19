@@ -29,13 +29,66 @@ class circular_buffer {
   { // empty
   }
 
-    void put(T item);
-    T get();
-    void reset();
-    bool empty() const;
-    bool full() const;
-    size_t capacity() const;
-    size_t size() const;
+    void put(T item) {
+      std::lock_guard<std::mutex> lock(mutex_);
+
+      this->buf_[this->head_] = item;
+
+      if(this->full_)
+      {
+        this->tail_ = (this->tail_ + 1) % this->max_size_;
+      }
+
+      this->head_ = (this->head_ + 1) % this->max_size_;
+
+      this->full_ = this->head_ == this->tail_;
+    }
+    T get() {
+      std::lock_guard<std::mutex> lock(mutex_);
+
+      if(this->empty())
+      {
+        return T();
+      }
+
+      //Read data and advance the tail (we now have a free space)
+      auto val = this->buf_[this->tail_];
+      this->full_ = false;
+      this->tail_ = (this->tail_ + 1) % this->max_size_;
+
+      return val;
+    }
+    void reset() {
+      std::lock_guard<std::mutex> lock(mutex_);
+      this->head_ = this->tail_;
+      this->full_ = false;
+    }
+    bool empty() const {
+      return (!this->full_ && (this->head_ == this->tail_));
+    }
+    bool full() const {
+      return this->full_;
+    }
+    size_t capacity() const {
+      return this->max_size_;
+    }
+    size_t size() const {
+      size_t size = this->max_size_;
+
+      if(!this->full_)
+      {
+        if(this->head_ >= this->tail_)
+        {
+          size = this->head_ - this->tail_;
+        }
+        else
+        {
+          size = this->max_size_ + this->head_ - this->tail_;
+        }
+      }
+
+      return size;
+    }
 
   private:
     std::mutex mutex_;

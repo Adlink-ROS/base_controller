@@ -18,9 +18,11 @@
 #include <thread>
 #include <atomic>
 #include <memory>
+#include <queue>
 
 #include "base_controller/base_controller.hpp"
 #include "base_controller/ringbuffer.hpp"
+#include "base_controller/safequeue.hpp"
 
 class STMController : public base_controller
 {
@@ -29,15 +31,20 @@ class STMController : public base_controller
     ~STMController();
     int8_t init(void);
     void deinit(void);
+    void send_cmd(uint8_t * buffer, size_t len);
     void runner(void);
     void consumer(void);
+    void commander(void);
   private:
-    std::thread recv_thread;
+    std::thread running_thread;
+    std::thread consumer_thread;
+    std::thread commander_thread;
     std::atomic_bool running;
     std::string port_name;
     uint32_t baudrate;
     /* circular_buffer is thread-safe */
-    std::unique_ptr<circular_buffer<uint8_t>> ringbuf;
+    std::shared_ptr<circular_buffer<uint8_t>> ringbuf;
+    SafeQueue<controller_cmd> cmd_queue;
 };
 
 #endif /* BASE_CONTROLLER_CONTROLLERS_HPP_ */

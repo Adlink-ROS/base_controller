@@ -26,6 +26,11 @@ struct controller_event {
   std::function<bool()> matching_func;
 };
 
+struct controller_cmd {
+  size_t len;
+  uint8_t * buffer;
+};
+
 class base_controller {
   public:
     void notify(controller_event & event);
@@ -39,6 +44,7 @@ class base_controller {
     }
     virtual int8_t init(void) = 0;
     virtual void deinit(void) = 0;
+    virtual void send_cmd(uint8_t * buffer, size_t len) = 0;
   private:
     std::map<std::string, controller_event> event_map =
       std::map<std::string, controller_event>();
