@@ -24,6 +24,10 @@ class SafeQueue
       : q(), m(), c()
     {}
 
+    SafeQueue(std::condition_variable c)
+      : q(), m(), c(c)
+    {}
+
     ~SafeQueue(void)
     {}
 

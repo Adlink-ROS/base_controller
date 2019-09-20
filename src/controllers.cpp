@@ -18,7 +18,7 @@
 #include <iostream>
 #include <memory>
 #include <chrono>
-#include <iostream>
+#include <bitset>
 
 #include <serial/serial.h>
 
@@ -29,7 +29,7 @@
  */
 
 /* There will be only one serial device when interactive with the STMController */
-std::shared_ptr<serial::Serial> serial_device = nullptr;
+static std::shared_ptr<serial::Serial> serial_device = nullptr;
 
 STMController::STMController(std::string name, uint32_t baudrate) :
   port_name(name), baudrate(baudrate)
@@ -53,6 +53,12 @@ int8_t STMController::init(void)
   } catch (const std::exception& ex) {
     throw;
   }
+
+  if (!serial_device->isOpen()) {
+    std::cout << "device is not open" << std::endl;
+    throw;
+  }
+
   this->running = false;
 
   // default ring buffer size = 2048
@@ -71,10 +77,10 @@ int8_t STMController::init(void)
       this->consumer();
       });
 
-  this->commander_thread = std::thread(
-      [this]()->void {
-      this->commander();
-      });
+  // this->commander_thread = std::thread(
+  //     [this]()->void {
+  //     this->commander();
+  //     });
 
   return ret;
 }
@@ -91,11 +97,11 @@ void STMController::deinit(void)
   {
     this->consumer_thread.join();
   }
-  if (this->commander_thread.joinable())
-  {
-    this->commander_thread.join();
-  }
-  std::cout << "deinit" << std::endl;
+  //if (this->commander_thread.joinable())
+  //{
+  //  this->commander_thread.join();
+  //}
+  serial_device->close();
 }
 
 void STMController::send_cmd(uint8_t * buffer, size_t len)
@@ -120,26 +126,51 @@ void STMController::commander(void) {
 
 void STMController::runner(void)
 {
-  size_t chunk_size = 4;
   size_t return_size = 0;
-  std::vector<uint8_t> _local_buf(chunk_size);
+  uint8_t chr = 0;
   while (this->running.load())
   {
-    return_size = serial_device->read(_local_buf, chunk_size);
-    for (size_t i = 0; i < return_size; i++) {
-      this->ringbuf->put(_local_buf.at(i));
-    }
-    // Don't poll to fast ?
-    std::this_thread::sleep_for(std::chrono::microseconds(100));
+    return_size = serial_device->read(&chr, 1);
+    if (return_size == 1)
+      this->ringbuf->put(chr);
   }
 }
 
 void STMController::consumer(void)
 {
+  size_t payload_size = 0;
+  uint8_t event_code = 0;
+  std::vector<uint8_t> payload_vector;
   while (this->running.load())
   {
-    uint8_t chr = this->ringbuf->get();
-    // Don't poll to fast ?
-    std::this_thread::sleep_for(std::chrono::microseconds(100));
+    uint8_t first_chr = this->ringbuf->get();
+    uint8_t second_chr = this->ringbuf->get();
+    if ((first_chr == 0xFF) && (second_chr == 0xFA)) {
+      payload_size = 12; event_code = 0xFA;
+    } else if ((first_chr == 0xFF) && (second_chr == 0xFB)) {
+      payload_size = 7; event_code = 0xFB;
+    } else if ((first_chr == 0xFF) && (second_chr == 0xFC)) {
+      payload_size = 13; event_code = 0xFC;
+    } else {
+      // Do nothing when not match, continue to the next loop
+      continue;
+    }
+    /*
+     * vector.resize() allocated a new memory here,
+     * which might cause performance issue
+     */
+    payload_vector.resize(payload_size);
+    for (auto it = payload_vector.begin();
+        it != payload_vector.end(); ++it) {
+      *it = this->ringbuf->get();
+    }
+    if (this->event_map.find(event_code) ==
+        this->event_map.end())
+    {
+      // Do nothing when not matching
+    } else {
+      auto event = this->event_map[event_code];
+      event.cb(payload_vector);
+    }
   }
 }

@@ -39,6 +39,7 @@ class STMController : public base_controller
     std::thread running_thread;
     std::thread consumer_thread;
     std::thread commander_thread;
+    std::condition_variable cv;
     std::atomic_bool running;
     std::string port_name;
     uint32_t baudrate;

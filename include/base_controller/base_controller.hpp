@@ -18,12 +18,13 @@
 #include <string>
 #include <map>
 #include <functional>
+#include <vector>
 
 struct controller_event {
   std::string name;
   std::string description;
-  std::function<void()> cb;
-  std::function<bool()> matching_func;
+  uint8_t event_code;
+  std::function<void(std::vector<uint8_t>)> cb;
 };
 
 struct controller_cmd {
@@ -36,18 +37,17 @@ class base_controller {
     void notify(controller_event & event);
     void register_event(controller_event & event) {
       this->event_map.insert
-        (std::pair<std::string, controller_event>(event.name, event));
+        (std::pair<uint8_t, controller_event>(event.event_code, event));
     }
-    void unregister_event(std::string name) {
-      auto it = this->event_map.find(name);
+    void unregister_event(uint8_t event_code) {
+      auto it = this->event_map.find(event_code);
       this->event_map.erase(it);
     }
     virtual int8_t init(void) = 0;
     virtual void deinit(void) = 0;
     virtual void send_cmd(uint8_t * buffer, size_t len) = 0;
-  private:
-    std::map<std::string, controller_event> event_map =
-      std::map<std::string, controller_event>();
+    std::map<uint8_t, controller_event> event_map =
+      std::map<uint8_t, controller_event>();
 };
 
 #endif /* BASE_CONTROLLER_HPP_ */
