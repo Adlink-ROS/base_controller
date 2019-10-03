@@ -77,10 +77,10 @@ int8_t STMController::init(void)
       this->consumer();
       });
 
-  // this->commander_thread = std::thread(
-  //     [this]()->void {
-  //     this->commander();
-  //     });
+  this->commander_thread = std::thread(
+      [this]()->void {
+      this->commander();
+      });
 
   return ret;
 }
@@ -119,7 +119,7 @@ void STMController::commander(void) {
     controller_cmd cmd = this->cmd_queue.dequeue();
     ret = cmd.len;
     while (ret != 0) {
-      ret = serial_device->write(cmd.buffer, ret);
+      ret -= serial_device->write(cmd.buffer, ret);
     }
   }
 }
