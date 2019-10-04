@@ -113,13 +113,12 @@ void STMController::send_cmd(std::vector<uint8_t> buffer, size_t len)
 }
 
 void STMController::commander(void) {
-  size_t ret = 0;
   while (this->running.load()) {
+    size_t n = 0;
     // queue is thread safe
     controller_cmd cmd = this->cmd_queue.dequeue();
-    ret = cmd.len;
-    while (ret != 0) {
-      ret -= serial_device->write(cmd.buffer.data(), ret);
+    while (n < cmd.len) {
+      n += serial_device->write(cmd.buffer.data()+n, cmd.len-n);
     }
   }
 }
