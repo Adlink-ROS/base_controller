@@ -31,7 +31,7 @@ class STMController : public base_controller
     ~STMController();
     int8_t init(void);
     void deinit(void);
-    void send_cmd(uint8_t * buffer, size_t len);
+    void send_cmd(std::vector<uint8_t> buffer, size_t len);
     void runner(void);
     void consumer(void);
     void commander(void);

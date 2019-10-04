@@ -104,7 +104,7 @@ void STMController::deinit(void)
   serial_device->close();
 }
 
-void STMController::send_cmd(uint8_t * buffer, size_t len)
+void STMController::send_cmd(std::vector<uint8_t> buffer, size_t len)
 {
   controller_cmd cmd ;
   cmd.buffer = buffer;
@@ -119,7 +119,7 @@ void STMController::commander(void) {
     controller_cmd cmd = this->cmd_queue.dequeue();
     ret = cmd.len;
     while (ret != 0) {
-      ret -= serial_device->write(cmd.buffer, ret);
+      ret -= serial_device->write(cmd.buffer.data(), ret);
     }
   }
 }
