@@ -44,19 +44,22 @@ class circular_buffer {
       this->full_ = this->head_ == this->tail_;
     }
     T get() {
-      std::lock_guard<std::mutex> lock(mutex_);
-
-      if(this->empty())
+      while(true)
       {
-        return T();
+        std::lock_guard<std::mutex> lock(mutex_);
+
+        if(this->empty())
+        {
+          continue;
+        }
+
+        //Read data and advance the tail (we now have a free space)
+        auto val = this->buf_[this->tail_];
+        this->full_ = false;
+        this->tail_ = (this->tail_ + 1) % this->max_size_;
+
+        return val;
       }
-
-      //Read data and advance the tail (we now have a free space)
-      auto val = this->buf_[this->tail_];
-      this->full_ = false;
-      this->tail_ = (this->tail_ + 1) % this->max_size_;
-
-      return val;
     }
     void reset() {
       std::lock_guard<std::mutex> lock(mutex_);

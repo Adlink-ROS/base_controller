@@ -88,6 +88,7 @@ int8_t STMController::init(void)
 void STMController::deinit(void)
 {
   this->running = false;
+  this->ringbuf->put(0);
   // Wait until finished
   if (this->running_thread.joinable())
   {
@@ -97,10 +98,10 @@ void STMController::deinit(void)
   {
     this->consumer_thread.join();
   }
-  //if (this->commander_thread.joinable())
-  //{
-  //  this->commander_thread.join();
-  //}
+  if (this->commander_thread.joinable())
+  {
+   this->commander_thread.join();
+  }
   serial_device->close();
 }
 
@@ -143,12 +144,14 @@ void STMController::consumer(void)
   while (this->running.load())
   {
     uint8_t first_chr = this->ringbuf->get();
+    if(first_chr != 0xFF)
+      continue;
     uint8_t second_chr = this->ringbuf->get();
-    if ((first_chr == 0xFF) && (second_chr == 0xFA)) {
+    if (second_chr == 0xFA) {
       payload_size = 12; event_code = 0xFA;
-    } else if ((first_chr == 0xFF) && (second_chr == 0xFB)) {
+    } else if (second_chr == 0xFB) {
       payload_size = 7; event_code = 0xFB;
-    } else if ((first_chr == 0xFF) && (second_chr == 0xFC)) {
+    } else if (second_chr == 0xFC) {
       payload_size = 13; event_code = 0xFC;
     } else {
       // Do nothing when not match, continue to the next loop
