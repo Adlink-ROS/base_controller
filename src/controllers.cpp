@@ -66,12 +66,12 @@ int8_t STMController::init(void)
     std::make_shared<circular_buffer<uint8_t>>(2048);
 
   this->running = true;
-
+#if 0
   this->running_thread = std::thread(
       [this]()->void {
       this->runner();
       });
-
+#endif
   this->consumer_thread = std::thread(
       [this]()->void {
       this->consumer();
@@ -90,10 +90,12 @@ void STMController::deinit(void)
   this->running = false;
   this->ringbuf->put(0);
   // Wait until finished
+#if 0
   if (this->running_thread.joinable())
   {
     this->running_thread.join();
   }
+#endif
   if (this->consumer_thread.joinable())
   {
     this->consumer_thread.join();
@@ -123,7 +125,7 @@ void STMController::commander(void) {
     }
   }
 }
-
+#if 0
 void STMController::runner(void)
 {
   size_t return_size = 0;
@@ -135,9 +137,42 @@ void STMController::runner(void)
       this->ringbuf->put(chr);
   }
 }
-
+#endif
 void STMController::consumer(void)
 {
+#if 1
+  size_t payload_size = 0;
+  uint8_t event_code = 0;
+  uint8_t first_chr = 0, second_chr = 0;
+  std::vector<uint8_t> payload_vector;
+  while (this->running.load())
+  {
+    serial_device->read(&first_chr, 1);
+    if(first_chr != 0xFF)
+      continue;
+    serial_device->read(&second_chr, 1);
+    if (second_chr == 0xFA) {
+      payload_size = 12; event_code = 0xFA;
+    } else if (second_chr == 0xFB) {
+      payload_size = 7; event_code = 0xFB;
+    } else if (second_chr == 0xFC) {
+      payload_size = 13; event_code = 0xFC;
+    } else {
+      // Do nothing when not match, continue to the next loop
+      continue;
+    }
+    /*
+     * vector.resize() allocated a new memory here,
+     * which might cause performance issue
+     */
+    payload_vector.resize(payload_size);
+    uint8_t chr;
+    for (auto it = payload_vector.begin();
+        it != payload_vector.end(); ++it) {
+      serial_device->read(&chr, 1);
+      *it = chr;
+    }
+#else
   size_t payload_size = 0;
   uint8_t event_code = 0;
   std::vector<uint8_t> payload_vector;
@@ -166,6 +201,7 @@ void STMController::consumer(void)
         it != payload_vector.end(); ++it) {
       *it = this->ringbuf->get();
     }
+#endif
     if (this->event_map.find(event_code) ==
         this->event_map.end())
     {
