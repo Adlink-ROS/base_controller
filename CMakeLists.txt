@@ -23,12 +23,12 @@ add_library(${target} SHARED
 
 target_link_libraries(${target}
   PUBLIC
-  ${SERIAL_LIBRARIES}
+  ${serial_LIBRARIES}
   )
 target_include_directories(${target}
   PUBLIC
   ${header_path}
-  ${SERIAL_INCLUDE_DIRS}
+  ${serial_INCLUDE_DIRS}
   )
 
 install(TARGETS
